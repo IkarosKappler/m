@@ -1,5 +1,5 @@
 # M (Math)
 
-A Javascript math and calculus collection.
+A math and calculus collection for Javascript.
 
-License: GPLv3
+
