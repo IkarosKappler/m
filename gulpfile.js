@@ -4,28 +4,36 @@ var concat = require('gulp-concat');
 var rename = require('gulp-rename');
 var uglify = require('gulp-uglify');
 var runSequence = require('run-sequence');
+var del = require('del');
 
 //script paths
-var jsFiles = 'src/M.js src/M.Point.js src/M.Ellipse.js src/M.EllipticSector.js',
+var // jsFiles = 'src/*', 
+    jsFiles = ['src/M.js', 'src/M.Point.js', 'src/M.Ellipse.js', 'src/M.EllipticSector.js'],
     jsDest = './',
     concatFilename = 'm.js';
 
+gulp.task('clean', function() {
+    return Promise.all([
+        del('m.js'),
+        del('m.min.js')
+    ]);
+});
+
 gulp.task('concat', function() {
-    var code = gulp.src(jsFiles)
-        .pipe(concat('m.js'))
-        .pipe(gulp.dest(jsDest));
-    //console.log( code );
-    return code;
+    return gulp.src(jsFiles)
+        .pipe(concat(concatFilename))
+        //.pipe(rename(concatFilename))
+        .pipe(gulp.dest(jsDest).on('end',function(){ console.log('built m.js')}));
 });
 
 gulp.task('uglify', function() {
-    return gulp.src(concatFilename)
+    return gulp.src(jsDest+concatFilename)
 	.pipe(uglify())
 	.pipe(rename({suffix: '.min'}))
 	.pipe(gulp.dest(jsDest));
 });
 
 gulp.task('default', function() {
-    return runSequence( 'concat', 'uglify' ); 
+    return runSequence( 'clean', 'concat', 'uglify' ); 
 });
 
