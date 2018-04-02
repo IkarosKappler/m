@@ -71,3 +71,19 @@ M.wrapTo2Pi = function( a ) {
     //return M.TWOPI - (a > 0 ? (Math.PI*2 - a) : -a);
     return (a > 0 ? (Math.PI*2 - a) : -a);
 };
+
+
+// +--------------------------------------------------------------------
+// | Get the length of the hypotenuse of the right-angled triangle
+// | with the legs a and b.
+// |
+// | Negative values are allowed.
+// |
+// | @param a Length of the adjacent cathetus.
+// | @param b Length of the opposite cathetus.
+// |
+// | @return A positive number indicating sqrt( a^2 + b^2 ).
+// +------------------------------------------------
+M.hypo = function( a, b ) {
+    return Math.sqrt( a*a + b*b );
+};
