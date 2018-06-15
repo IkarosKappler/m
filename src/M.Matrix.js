@@ -1,296 +1,8 @@
 /**
- * A collection of useful math functions, utils and classes.
- *
- * @author   Ikaros Kappler
- * @date     2018-03-16
- * @modified 2018-03-19 Added DEG2RAD and RAD2DEG.
- * @version  1.1.0
- **/
-
-
-(function(_context) {
-	"use strict";
-
-	// +--------------------------------------------------------------------
-	// | This is M;
-	// +------------------------------------------------
-	var M = _context.M = M || {};
-
-
-
-	// +--------------------------------------------------------------------
-	// | The conversion constant for transforming degrees to radians.
-	// +------------------------------------------------
-	M.DEG2RAD = Math.PI/180;
-
-
-	// +--------------------------------------------------------------------
-	// | The conversion constant for transforming radians to degrees.
-	// +------------------------------------------------
-	M.RAD2DEG = 180/Math.PI;
-
-
-	// +--------------------------------------------------------------------
-	// | Two Pi.
-	// +------------------------------------------------
-	M.TWOPI = Math.PI*2;
-
-
-	// +--------------------------------------------------------------------
-	// | atanYX computes the angle between a vector (0,0)->(x,y) and
-	// | the positive x-axis.
-	// |
-	// | Note that the native atan2 computes the angle related to the
-	// | positive y-axis.
-	// |
-	// | @param x:Number The x component of your cartesian vector point.
-	// | @param y:Number The y component of your cartesian vector point.
-	// |
-	// | @return The angle of the vector (with x-axis = 0°).
-	// +------------------------------------------------
-	M.atanYX = function( x, y ) {
-	    // --- Swapping (x,y) to (-y,x) rotates the point by 90° :)
-	    return Math.atan2(-y,x);
-	};
-
-
-
-	// +--------------------------------------------------------------------
-	// | Wraps a given float into the interval [0, 2*PI].
-	// |
-	// |
-	// | * [0,-PI] is mapped to [0, PI]
-	// | * [0, PI] is mapped to [PI,2*PI]
-	// |
-	// |
-	// | 
-	// | This is useful to display full circle radians (counter clockwise)
-	// | instead of negative and positive half-radians.
-	// |
-	// | @param a:Number Any real number.
-	// |
-	// | @return 
-	// +------------------------------------------------
-	M.wrapTo2Pi = function( a ) {
-	    //return M.TWOPI - (a > 0 ? (Math.PI*2 - a) : -a);
-	    return (a > 0 ? (Math.PI*2 - a) : -a);
-	};
-})( window ? window : module.exports );
-
-
-/**
- * A point class in 2D.
- *
- * @requires M
- *
- * @author  Ikaros Kappler
- * @date    2018-03-15
- * @version 1.0.0
- **/
-
-(function(_context) {
-	"use strict";
-
-	M.Point = function( x, y ) {
-	    if( typeof x === 'undefined' ) x = 0;
-	    if( typeof y === 'undefined' ) y = 0;
-
-	    this.x = x;
-	    this.y = y;
-	};
-
-
-	// +-------------------------------------------------------------------
-	// | Inverse this point to (-x,-y).
-	// +--------------------------------------------------
-	M.Point.prototype.inverse = function() {
-	    this.x = -this.x;
-	    this.y = -this.y;
-	    return this;
-	}
-
-
-	// +-------------------------------------------------------------------
-	// | Clone this point.
-	// +--------------------------------------------------
-	M.Point.prototype.clone = function() {
-	    return new Point(this.x, this.y);
-	}
-
-})( window ? window : module.exports );
-/**
- * My very own little ellipse class.
- *
- * @requires Point M
- *
- * @author  Ikaros Kappler
- * @date    2018-03-15
- * @version 1.0.0
- **/
-
-
-(function(_context) {
-    "use strict";
-
-    // +-------------------------------------------------------------------
-    // | Construct a new ellipse.
-    // +------------------------------------------------
-    M.Ellipse = function(a,b,center) {
-
-        if( typeof center === 'undefined' ) center = new M.Point();
-        
-        this.a = a;
-        this.b = b;
-        this.center = center;
-    };
-
-
-    // +-------------------------------------------------------------------
-    // | Compute the area in O(1).
-    // +--------------------------------------------------
-    M.Ellipse.prototype.computeArea = function() {
-        return Math.PI*this.a*this.b;
-    };
-
-
-    // +-------------------------------------------------------------------
-    // | Get the point on the outline by the given circular angle (t).
-    // |
-    // | Note that t is NOT the elliptical angle, thus the angle of the vector
-    // | from the origin the the computed points will be a different one.
-    // +--------------------------------------------------
-    M.Ellipse.prototype.getPointAtT = function( t ) {
-        return new M.Point( this.a*Math.cos(t), this.b*Math.sin(t) );
-    };
-
-
-    // +-------------------------------------------------------------------
-    // | Get the point on the outline by the given angle (theta).
-    // +--------------------------------------------------
-    M.Ellipse.prototype.getPointAtTheta = function( theta ) {
-        // http://mathworld.wolfram.com/Ellipse-LineIntersection.html
-        // Convert this ellipse to a circle
-        var circular = new M.Ellipse( Math.max(this.a,this.b), Math.max(this.a, this.b) );
-        // Imagine any line defined by the angle theta and find the intersection.
-        var linePoint = circular.getPointAtT( theta );
-        return this.getCentralLineIntersection( linePoint );
-    };
-
-
-    // +-------------------------------------------------------------------
-    // | Get the point (x,y) on the outline by the given diametral line (specified by single point).
-    // |
-    // | Not that this point is not unique. There is a second one at (-x,-y).
-    // +--------------------------------------------------
-    M.Ellipse.prototype.getCentralLineIntersection = function( point ) {
-        // http://mathworld.wolfram.com/Ellipse-LineIntersection.html
-        
-        var base = (this.a*this.b) / Math.sqrt( this.a*this.a * point.y*point.y + this.b*this.b * point.x*point.x );
-        if( point.y < 0 ) {
-    	//console.log( JSON.stringify(point) );
-    	return new M.Point(  (base * point.x),
-    			     (base * point.y)
-    			  );
-        } else {
-    	return new M.Point(  base * point.x,
-    			     base * point.y
-    			  );
-        }
-    };
-
-
-    // +-------------------------------------------------------------------
-    // | Split this ellipse into n elliptic sectors.
-    // +--------------------------------------------------
-    M.Ellipse.prototype.sectorize = function( n, startAt ) {
-
-        if( typeof startAt === 'undefined' ) startAt = 0.0;
-        
-        // This solution was insipred by
-        //    https://stackoverflow.com/questions/21277355/how-can-you-find-the-point-on-an-ellipse-that-sweeps-a-given-area
-        // Thanks to Vikram and Harish Chandra Rajpoot
-        
-        var sectors = [];
-        var points = [];
-
-        var step  = Math.PI*2/n;
-        var circularAngle = startAt+step;
-        var theta_old = startAt;
-        for( var i = 0; i < n; i++ ) {
-    	var point = this.getPointAtT( circularAngle );
-    	points.push( point );
-    	// Compute the angle for the point (x,y) on the outline.
-    	// Remember: atan2 begins on top and also returns negative values in [-PI,PI]
-    	var theta = M.wrapTo2Pi( M.atanYX(point.x,point.y) );
-    	sectors.push( new M.EllipticSector(this, theta_old, theta) );	
-    	circularAngle += step;
-    	theta_old = theta;
-        }
-
-        return { points : points, sectors : sectors };
-    }
-
-    /*
-    M.Ellipse.prototype.scale = function( scaleA, scaleB ) {
-        this.a *= scaleA;
-        this.b *= scaleB;
-        return this;
-    };
-    */
-
-})( window ? window : module.exports );
-
-
-    // Self test
-if( true ) {
-
-    var e = new M.Ellipse(250,150);
-    console.log( JSON.stringify(e) );
-
-}
-
-/**
- * An elliptic sector.
- *
- * @author  Ikaros Kappler
- * @version 1.0.0
- * @date    2018-03-15
- **/
-
-
-(function(_context) {
-    "use strict";
-
-
-    M.EllipticSector = function( ellipse, theta0, theta1 ) {
-        this.ellipse = ellipse;
-        this.theta0 = theta0;
-        this.theta1 = theta1;
-    };
-
-    M.EllipticSector.prototype.getTheta = function() {
-        return this.theta1-this.theta0;
-    }
-
-    M.EllipticSector.prototype.computeArea = function() {
-        var theta = this.getTheta();
-        var a = this.ellipse.a;
-        var b = this.ellipse.b;
-        return area =
-    	((a * b)/2) *
-    	(theta-Math.atan((b-a)*Math.sin(2*this.theta1) / (a+b+(b-a)*Math.cos(2*this.theta1))) +
-    	 Math.atan((b-a)*Math.sin(2*this.theta0) / (a+b+(b-a)*Math.cos(2*this.theta0))) );
-    }
-
-
-})( window ? window : module.exports );
-/**
  * A matrix class.
  *
  * Todo:
  *  - inv
- *  - rank
- *  - eval
  *
  * @requires M
  *
@@ -404,14 +116,75 @@ if( true ) {
 	// | 
 	// | @return this (for chaining).  
 	// +--------------------------------------------------
+	M.Matrix.prototype.getColumn = function( index ) {
+		if( index < 0 || index >= this.n )
+			throw "Cannot retrieve column: index out of bounds (" + index + ", n="+this.n+")";
+		var vec = [];
+		for( var y = 0; y < this.m; y++ )
+			vec.push( this.data[y][index] );
+		return vec;
+	};
+
+
+	// +-------------------------------------------------------------------
+	// | Adds a column to the right of this matrix.
+	// |
+	// | @param array A vector as an array. Must have m elements.
+	// | 
+	// | @return this (for chaining).  
+	// +--------------------------------------------------
 	M.Matrix.prototype.addColumn = function( vec ) {
-		if( this.m != vec.length )
+		if( this.n > 0 && this.m != vec.length )
 			throw "Cannot add a column vector with " + vec.length + " elements to an " + this.m + "x" + this.n + " matrix.";
-		for( var i = 0; i < vec.length; i++ ) {
-			this.data[i].push( vec[i] );
+		if( this.n == 0 ) {
+			//this.data.push( __cloneArray(vec) );
+			for( var y = 0; y < vec.length; y++ )
+				this.data.push( [vec[y]] );
+			this.m = vec.length;
+		} else {
+			for( var i = 0; i < vec.length; i++ ) 
+				this.data[i].push( vec[i] );
 		}
 		this.n++;
 		return this;
+	};
+
+
+	// +-------------------------------------------------------------------
+	// | Adds a matrix to the right of this matrix.
+	// |
+	// | @param M.Matrix A second matrix to attach to the right.
+	// | 
+	// | @return this (for chaining).  
+	// +--------------------------------------------------
+	M.Matrix.prototype.concat = function( mat ) {
+		if( this.m > 0 && this.m != mat.m )
+			throw "Cannot concat an " + mat.m + 'x' + mat.n + " matrix to an " + this.m + "x" + this.n + " matrix.";
+		for( var x = 0; x < mat.n; x++ ) 
+			this.addColumn( mat.getColumn(x) );
+		return this;
+	};
+
+
+	// +-------------------------------------------------------------------
+	// | Adds a column to the right of this matrix.
+	// |
+	// | @param array A vector as an array. Must have m elements.
+	// | 
+	// | @return this (for chaining).  
+	// +--------------------------------------------------
+	M.Matrix.prototype.getColumns = function( start, end ) {
+		var mat = new M.Matrix([]);
+		console.log( 'mat: ' + mat.m + 'x' + mat.n );
+		for( var x = start; x < end; x++ ) {
+			//console.log( x );
+			//console.log( mat.toString() );
+			//console.log( 'Column: ' + JSON.stringify(this.getColumn(x)) );
+			mat.addColumn( this.getColumn(x) );
+			//console.log( 'After adding ...' );
+			//console.log( mat.toString() );
+		}
+		return mat;
 	};
 
 
@@ -453,6 +226,32 @@ if( true ) {
 
 
 	// +-------------------------------------------------------------------
+	// | Multiplies this m*n matrix with the given n*k matrix.
+	// | 
+	// | @return M.Matrix (the result of the multiplication).  
+	// +--------------------------------------------------
+	// NOT WORKING CORRECTLY
+	/*
+	M.Matrix.prototype.inv = function() {
+		if( this.n != this.m )
+			throw "Cannot compute inverse matrix from a non-square matrix (" + this.m + 'x' + this.n + ").";
+
+		// Create the identity matrix
+		var ident = M.Matrix.identity( this.m );
+		// Work on a clone of this matrix
+		var A     = this.clone();
+		A.concat(ident);
+		console.log( A.toString(true) );
+		console.log( "(" + A.m + 'x' + A.n + ")." );
+		A.gaussianElimination();
+
+		return A.getColumns( 0, this.n );
+	}
+	*/
+
+
+
+	// +-------------------------------------------------------------------
 	// | Compute the upper triangular matrix using gaussian elimination.
 	// |
 	// | In-place: yes.
@@ -463,30 +262,30 @@ if( true ) {
 		// Thanks to itsravenous@github for the implementation of gaussian
 		// elimination:
 		//    https://github.com/itsravenous/gaussian-elimination
-
-		for( var i=0; i < this.n; i++ ) { 
+		//for( var i=0; i < this.n; i++ ) { 
+		for( var i=0; i < this.m; i++ ) { 
 	        // Search for maximum in this column
 	        var maxEl = Math.abs(this.data[i][i]),
 	            maxRow = i;
-	        for( var k=i+1; k < this.n; k++) { 
+	        //for( var k=i+1; k < this.n; k++) { 
+	        for( var k=i+1; k < this.m; k++) { 
 	            if (Math.abs(this.data[k][i]) > maxEl) {
 	                maxEl = Math.abs(this.data[k][i]);
 	                maxRow = k;
 	            }
 	        }
-
-
 	        // Swap maximum row with current row (column by column)
 	        for( var k=i; k < this.n; k++) { // < n+1 ?
 	            var tmp = this.data[maxRow][k];
 	            this.data[maxRow][k] = this.data[i][k];
 	            this.data[i][k] = tmp;
 	        }
-
 	        // Make all rows below this one 0 in current column
-	        for( var k=i+1; k < this.n; k++) { 
+	        //for( var k=i+1; k < this.n; k++) { 
+	        for( var k=i+1; k < this.m; k++) { 
 	            var c = -this.data[k][i]/this.data[i][i];
-	            for (var j=i; j < this.n; j++) { // < n+1 ?
+	            // for (var j=i; j < this.n; j++) { // < n+1 ?
+	            for (var j=i; j < this.m; j++) { // < n+1 ?
 	                if (i===j) {
 	                    this.data[k][j] = 0;
 	                } else {
@@ -496,6 +295,7 @@ if( true ) {
 	        }
 	    }
 	    // console.log( JSON.stringify(this.data) );
+	    return this;
 	}
 	
 
@@ -508,6 +308,7 @@ if( true ) {
 	M.Matrix.prototype.empty = function() {
 		return this.m == 0 || this.n == 0;
 	};
+
 
 
 	// +-------------------------------------------------------------------
@@ -524,6 +325,27 @@ if( true ) {
 			det -= this.diagonalProduct( x, true  ); // bottomUp
 		}
 		return det;
+	};
+
+
+	// +-------------------------------------------------------------------
+	// | Compute the rank of this matrix – which is the dimension of the
+	// | vector space spanned by its rows.
+	// |
+	// | 0 <= mat.rank() < mat.m
+	// | 
+	// | @return int
+	// +--------------------------------------------------
+	M.Matrix.prototype.rank = function() {
+		// Convert this matrix into an upper triangle matrix
+		// and determine the number of linearly independent rows.
+		var triangle = this.clone().gaussianElimination();
+		var rank     = 0;
+		for( var y = 0; y < triangle.m; y++ ) {
+			if( !__isNullVector(triangle.data[y]) )
+				rank++;
+		}
+		return rank;
 	};
 
 
@@ -702,6 +524,14 @@ if( true ) {
 	};
 
 
+	var __isNullVector = function( arr ) {
+		for( var i = 0; i < arr.length; i++ ) {
+			if( arr[i] != 0 ) return false;
+		}
+		return true;
+	};
+
+
 
 	// +-------------------------------------------------------------------
 	// | Create the Identity matrix of size m*m or m*n.
@@ -787,6 +617,26 @@ if( true ) {
 	var y2 = M.Matrix.identity(4).eval( x );
 	console.log( '[D] y2=' + JSON.stringify(y2) );
 
+	console.log( '[D] Get the rank of the matrix ... ' );
+	console.log( '[D] rank=' + mD.rank() );
+
+	console.log( '[D] Get column of the matrix at index 2 ... ' );
+	console.log( '[D] rank=' + JSON.stringify(mD.getColumn(2)) );
+
+	console.log( '[D] Concat a second matrix ... ' );
+	console.log( '[D] concat: ' + mD.clone().concat( M.Matrix.identity(mD.m)).toString(true) );
+
+	console.log( '[E] Create a new matrix with rank() < m ... ' );
+	var mE = new M.Matrix( [ [1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,2,0] ] );
+	console.log( mE.toString( true ) );
+	console.log( '[E] Gaussian elimination: ' + mE.clone().gaussianElimination() );
+	console.log( '[E] rank=' + mE.rank() );
+
+	console.log( '[F] Create a new matrix with full rank (bijective) ... ' );
+	var mF = new M.Matrix( [ [1,0,0,0], [0,2,3,4], [0,0,3,4], [0,0,0,5] ] );
+	console.log( mF.toString( true ) );
+	console.log( '[F] rank=' + mF.rank() );
+	console.log( '[F] inverse=' + mF.inv() );
 }
 
 

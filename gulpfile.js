@@ -7,7 +7,7 @@ var runSequence = require('run-sequence');
 var del = require('del');
 
 //script paths
-var jsFiles = ['src/M.js', 'src/M.Point.js', 'src/M.Ellipse.js', 'src/M.EllipticSector.js'],
+var jsFiles = ['src/M.js', 'src/M.Point.js', 'src/M.Ellipse.js', 'src/M.EllipticSector.js', 'src/M.Matrix.js'],
     jsDest = './',
     concatFilename = 'm.js';
 
@@ -26,7 +26,9 @@ gulp.task('concat', function() {
 
 gulp.task('uglify', function() {
     return gulp.src(jsDest+concatFilename)
-	.pipe(uglify())
+	.pipe(uglify().on('error', function(e){
+            console.log(e);
+         }))
 	.pipe(rename({suffix: '.min'}))
 	.pipe(gulp.dest(jsDest));
 });
